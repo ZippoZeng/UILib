@@ -1,0 +1,80 @@
+apply plugin: 'com.android.application'
+
+
+def cfg = rootProject.ext.configuration // 配置
+def libs = rootProject.ext.libraries // 库
+
+// 使用 git commit 总数作为 version code
+def gitBuildVersion() {
+    def cmd = 'git rev-list HEAD --first-parent --count'
+    cmd.execute().text.trim().toInteger()
+}
+
+def gitVersionTag() {
+    def cmd = 'git describe --tags'
+    def version = cmd.execute().text.trim()
+
+    def pattern = "-(\\d+)-g"
+    def matcher = version =~ pattern
+
+    if (matcher) {
+        version = version.substring(0, matcher.start()) + "." + matcher[0][1]
+    } else {
+        version = version + ".0"
+    }
+    return version
+}
+
+
+android {
+    compileSdkVersion cfg.compileVersion
+    buildToolsVersion cfg.buildToolsVersion
+    defaultConfig {
+        applicationId "com.github.zippo.uilib"
+        minSdkVersion cfg.minSdk
+        targetSdkVersion cfg.targetSdk
+        versionCode 1
+        versionName "1.0"
+        buildConfigField 'int', 'BUILD_VERSION', '' + gitBuildVersion()
+    }
+
+    buildTypes {
+        debug {
+            // 为了不和 release 版本冲突
+            applicationIdSuffix ".debug"
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    flavorDimensions "default"
+    productFlavors {// 集成到demo里面
+        zippoapk {// 集成到乐播自己的APP里面
+            dimension "default"
+        }
+        zippotest {
+            dimension "default"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        if (variant.buildType.name.equals('release')) {
+        }
+        variant.outputs.all { output ->
+            String newName = "UILibDemo-" + variant.flavorName + "-" + variant.buildType.name + "-v" + defaultConfig.versionName + "(build " + gitBuildVersion() + ").apk"
+            outputFileName  = newName
+        }
+    }
+
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    //    implementation project(path: ':lib', configuration: 'release')
+    //    implementation project(path: ':lib', configuration: 'default')
+    //    implementation project(':lib')
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation 'com.android.support:design:27.0.2'
+}

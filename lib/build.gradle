@@ -1,0 +1,58 @@
+apply plugin: 'com.android.library'
+
+def cfg = rootProject.ext.configuration // 配置
+def libs = rootProject.ext.libraries // 库
+
+// 使用 git commit 总数作为 version code
+def gitBuildVersion() {
+    def cmd = 'git rev-list HEAD --first-parent --count'
+    cmd.execute().text.trim().toInteger()
+}
+
+android {
+    compileSdkVersion cfg.compileVersion
+    buildToolsVersion cfg.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion cfg.minSdk
+        targetSdkVersion cfg.targetSdk
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    flavorDimensions "default"
+    productFlavors {
+        zippo {
+            dimension "default"
+        }
+    }
+
+    libraryVariants.all { variant ->
+        if (variant.buildType.name.equals('release')) {
+        }
+        variant.outputs.all { output ->
+            String newName = "baselib-sdk-" + variant.flavorName + "-" + variant.buildType.name + "-v" + defaultConfig.versionName + "(build " + gitBuildVersion() + ").apk"
+            outputFileName = newName
+        }
+    }
+
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+
+
+}
+//版本编译时间
+def buildTime() {
+    def date = new Date()
+    def formattedDate = date.format('yyyy-MM-dd', TimeZone.getTimeZone("UTC"))
+    return formattedDate
+}
